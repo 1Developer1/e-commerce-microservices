@@ -27,6 +27,8 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: com.ecommerce.shared.*
+    listener:
+      missing-topics-fatal: false
 
 management:
   endpoints:
