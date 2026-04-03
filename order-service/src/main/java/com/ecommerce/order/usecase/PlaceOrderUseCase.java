@@ -8,6 +8,9 @@ import com.ecommerce.shared.domain.Money;
 import com.ecommerce.shared.dto.ProductValidationResponse;
 import com.ecommerce.shared.event.OrderPlacedEvent;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -15,6 +18,7 @@ import java.util.stream.Collectors;
 
 public class PlaceOrderUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(PlaceOrderUseCase.class);
     private final OrderRepository orderRepository;
     private final ProductServicePort productService;
     private final OrderEventPublisher eventPublisher;
@@ -55,8 +59,13 @@ public class PlaceOrderUseCase {
 
         orderRepository.save(order);
 
-        eventPublisher.publishOrderPlaced(new OrderPlacedEvent(
-                order.getId(), productQuantities, LocalDateTime.now()));
+        try {
+            eventPublisher.publishOrderPlaced(new OrderPlacedEvent(
+                    order.getId(), productQuantities, LocalDateTime.now()));
+        } catch (Exception e) {
+            // Order is saved but event failed — log for retry/outbox pattern later
+            log.warn("Order {} saved but event publish failed: {}", order.getId(), e.getMessage());
+        }
 
         return new Output(true, "Order placed successfully",
                 order.getId(), order.getStatus().name(), order.getTotalAmount().getAmount());
